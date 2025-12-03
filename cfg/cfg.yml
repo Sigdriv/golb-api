@@ -1,0 +1,8 @@
+port: 8080
+
+db:
+  host: localhost
+  port: 5432
+  user: admin
+  password: file::./secrets/db_password.txt
+  name: golb
