@@ -2,6 +2,7 @@ package handler
 
 import (
 	"golb-api/model"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -56,12 +57,49 @@ func (srv *Handler) HandleCreateBlog(c *gin.Context) {
 		return
 	}
 
-	err = srv.DB.CreateBlog(blog)
+	blogID, err := srv.DB.CreateBlog(blog)
 	if err != nil {
 		log.Errorf("Error creating blog >> %s", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Blog created successfully"})
+	c.JSON(http.StatusCreated, gin.H{"blogId": blogID})
+}
+
+func (srv *Handler) HandleUploadBlogPhoto(c *gin.Context) {
+	log := srv.getLog(c)
+
+	id := c.Param("blogId")
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Errorf("Error retrieving file >> %s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file"})
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		log.Errorf("Error opening file >> %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+	defer src.Close()
+
+	imageBytes, err := io.ReadAll(src)
+	if err != nil {
+		log.Errorf("Error reading file >> %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	err = srv.DB.UploadBlogPhoto(id, imageBytes)
+	if err != nil {
+		log.Errorf("Error uploading blog photo >> %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully"})
 }

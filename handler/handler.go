@@ -76,8 +76,11 @@ func (srv *Handler) CreateGinGroup() {
 
 	router.GET("/blogs", srv.HandleGetBlogs)
 	router.GET("/blogs/:id", srv.HandleGetBlog)
+	router.GET("/authors", srv.HandleGetAuthors)
+	router.GET("/tags", srv.HandleGetTags)
 
 	router.POST("/blogs", srv.HandleCreateBlog)
+	router.POST("/blogs/:blogId/file", srv.HandleUploadBlogPhoto)
 	router.POST("/statistics/:blogId", srv.HandleViewBlog)
 
 	runner := fmt.Sprintf("localhost:%s", srv.Config.Port)

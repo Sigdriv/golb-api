@@ -7,13 +7,14 @@ import (
 
 func (db *DB) GetBlogs() (blogs []model.Blog, err error) {
 	query := `
-	select b.id, b.title, b.content, b.created_at, t."name" as "tagName", a."name" as "authorName", count(s.id) as "views"
+	select b.id, b.title, b.content, b.created_at, t."name" as "tagName", a."name" as "authorName", count(s.started_at) as "views", f."data" as file
 	from blogs b 
 	left join blog_tags bt on b.id = bt.blog_id
 	left join tag t on t.id = bt.tag_id
 	left join author a on b.author_id = a.id
 	left join "statistics" s on s.blog_id = b.id
-	group by b.id, b.title, b.content, b.created_at, t.id, t."name", a."name"
+	left join file f on f.blog_id = b.id
+	group by b.id, b.title, b.content, b.created_at, t.id, t."name", a."name", f."data"
 	`
 
 	exisitngBlogs, err := Query[Blog](db, query, map[string]any{})
@@ -29,14 +30,15 @@ func (db *DB) GetBlogs() (blogs []model.Blog, err error) {
 
 func (db *DB) GetBlog(id string) (blog model.Blog, err error) {
 	query := `
-	select b.id, b.title, b.content, b.created_at, t."name" as "tagName", a."name" as "authorName", count(s.id) as "views"
+	select b.id, b.title, b.content, b.created_at, t."name" as "tagName", a."name" as "authorName", count(s.started_at) as "views", f."data" as file
 	from blogs b 
 	left join blog_tags bt on b.id = bt.blog_id
 	left join tag t on t.id = bt.tag_id
 	left join author a on b.author_id = a.id
 	left join "statistics" s on s.blog_id = b.id
+	left join file f on f.blog_id = b.id
 	where b.id = :id
-	group by b.id, b.title, b.content, b.created_at, t.id, t."name", a."name"
+	group by b.id, b.title, b.content, b.created_at, t.id, t."name", a."name", f."data"
 	`
 
 	args := map[string]any{
@@ -80,6 +82,7 @@ func mapBlog(blogs []Blog) []model.Blog {
 				CreatedAt: blog.CreatedAt,
 				Tags:      []string{blog.Tag},
 				Views:     blog.Views,
+				File:      blog.File,
 			}
 			newBlogs = append(newBlogs, newBlog)
 		}
@@ -88,7 +91,7 @@ func mapBlog(blogs []Blog) []model.Blog {
 	return newBlogs
 }
 
-func (db *DB) CreateBlog(blog model.Blog) (err error) {
+func (db *DB) CreateBlog(blog model.Blog) (blogID string, err error) {
 	var authorID string
 	var tagIDs []string
 
@@ -104,15 +107,9 @@ func (db *DB) CreateBlog(blog model.Blog) (err error) {
 		return
 	}
 
-	blogID, err := insertBlog(db, blog, authorID, tagIDs)
+	blogID, err = insertBlog(db, blog, authorID, tagIDs)
 	if err != nil {
 		err = fmt.Errorf("error inserting blog >> %w", err)
-		return
-	}
-
-	err = createStatistics(db, blogID)
-	if err != nil {
-		err = fmt.Errorf("error creating statistics >> %w", err)
 		return
 	}
 

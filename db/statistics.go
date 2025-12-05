@@ -1,34 +1,59 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+	"golb-api/model"
+)
 
-func (db *DB) IncrementBlogViews(blogID string) (err error) {
-	query := `UPDATE statistics SET views = views + 1 WHERE blog_id = :blog_id`
-	args := map[string]any{
-		"blog_id": blogID,
-	}
-
-	_, err = Exec(db, query, args)
-	if err != nil {
-		err = fmt.Errorf("error incrementing blog views >> %w", err)
-		return
-	}
-
-	return
-}
-
-func createStatistics(db *DB, blogID string) (err error) {
-	query := `
-		INSERT INTO statistics (blog_id)
-		VALUES (:blogID)
-	`
-	args := map[string]any{
+func (db *DB) RegisterViewToDB(blogID string, body model.Statistics) (message string, err error) {
+	checkQuery := ` 
+		SELECT id FROM statistics WHERE uuid = :uuid AND blog_id = :blogID
+		`
+	checkArgs := map[string]any{
+		"uuid":   body.Uuid,
 		"blogID": blogID,
 	}
 
-	_, err = Exec(db, query, args)
+	res, err := Query[Statistics](db, checkQuery, checkArgs)
 	if err != nil {
-		err = fmt.Errorf("error inserting statistics >> %w", err)
+		err = fmt.Errorf("error checking existing statistics >> %w", err)
+		return
+	}
+
+	if len(res) > 0 {
+		updateQuery := `
+			UPDATE statistics
+			SET ended_at = CURRENT_TIMESTAMP
+			WHERE uuid = :uuid AND blog_id = :blogID
+		`
+		updateArgs := map[string]any{
+			"uuid":   body.Uuid,
+			"blogID": blogID,
+		}
+
+		_, err = Exec(db, updateQuery, updateArgs)
+		if err != nil {
+			err = fmt.Errorf("error updating statistics >> %w", err)
+			return
+		}
+
+		message = "updated"
+
+		return
+	}
+
+	insertNewQuery := `
+		INSERT INTO statistics (blog_id, uuid)
+		VALUES (:blogID, :uuid)
+	`
+	insertNewArgs := map[string]any{
+		"blogID": blogID,
+		"uuid":   body.Uuid,
+	}
+
+	_, err = Exec(db, insertNewQuery, insertNewArgs)
+	if err != nil {
+		err = fmt.Errorf("error inserting new statistics >> %w", err)
 		return
 	}
 
