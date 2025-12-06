@@ -37,12 +37,12 @@ func (db *DB) GetBlog(id string) (blog model.Blog, err error) {
 	left join author a on b.author_id = a.id
 	left join "statistics" s on s.blog_id = b.id
 	left join file f on f.blog_id = b.id
-	where b.id = :id
+	where b.id = :blogID
 	group by b.id, b.title, b.content, b.created_at, t.id, t."name", a."name", f."data"
 	`
 
 	args := map[string]any{
-		"id": id,
+		"blogID": id,
 	}
 
 	blogs, err := Query[Blog](db, query, args)

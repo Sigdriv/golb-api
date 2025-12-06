@@ -18,6 +18,10 @@ func (srv *Handler) HandleGetBlogs(c *gin.Context) {
 		return
 	}
 
+	if len(blogs) == 0 {
+		blogs = []model.Blog{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"blogs": blogs})
 }
 

@@ -3,15 +3,25 @@ package db
 import (
 	"fmt"
 	"golb-api/model"
+	"strconv"
 )
 
 func (db *DB) RegisterViewToDB(blogID string, body model.Statistics) (message string, err error) {
 	checkQuery := ` 
-		SELECT id FROM statistics WHERE uuid = :uuid AND blog_id = :blogID
+		SELECT id
+		FROM statistics
+		WHERE uuid = :uuid AND blog_id = :blogID
 		`
+
+	blogIDInt, err := strconv.Atoi(blogID)
+	if err != nil {
+		err = fmt.Errorf("invalid blog ID >> %w", err)
+		return
+	}
+
 	checkArgs := map[string]any{
 		"uuid":   body.Uuid,
-		"blogID": blogID,
+		"blogID": blogIDInt,
 	}
 
 	res, err := Query[Statistics](db, checkQuery, checkArgs)
@@ -28,7 +38,7 @@ func (db *DB) RegisterViewToDB(blogID string, body model.Statistics) (message st
 		`
 		updateArgs := map[string]any{
 			"uuid":   body.Uuid,
-			"blogID": blogID,
+			"blogID": blogIDInt,
 		}
 
 		_, err = Exec(db, updateQuery, updateArgs)
@@ -47,8 +57,8 @@ func (db *DB) RegisterViewToDB(blogID string, body model.Statistics) (message st
 		VALUES (:blogID, :uuid)
 	`
 	insertNewArgs := map[string]any{
-		"blogID": blogID,
 		"uuid":   body.Uuid,
+		"blogID": blogIDInt,
 	}
 
 	_, err = Exec(db, insertNewQuery, insertNewArgs)

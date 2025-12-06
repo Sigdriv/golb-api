@@ -9,30 +9,6 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-func (db *DB) newDB() {
-	connectionString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		db.Config.Host,
-		db.Config.Port,
-		db.Config.User,
-		db.Config.Password,
-		db.Config.Name,
-	)
-	newDB, err := sqlx.Open("postgres", connectionString)
-	if err != nil {
-		panic(err)
-	}
-
-	err = newDB.Ping()
-	if err != nil {
-		panic(err)
-	}
-
-	newDB.SetMaxOpenConns(25)
-	newDB.SetMaxIdleConns(25)
-
-	db.Conn = newDB
-}
-
 func Query[T any](db *DB, query string, args map[string]any) ([]T, error) {
 	rows, err := db.Conn.NamedQuery(query, args)
 	if err != nil {

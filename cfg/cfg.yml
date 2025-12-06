@@ -1,8 +1,9 @@
 port: 8080
 
 db:
-  host: localhost
+  host: ep-green-term-a9bcgl8u.gwc.azure.neon.tech
   port: 5432
-  user: admin
+  user: neondb_owner
   password: file::./secrets/db_password.txt
   name: golb
+  sslMode: require
