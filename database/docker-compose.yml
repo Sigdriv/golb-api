@@ -1,24 +1,57 @@
+# services:
+#   postgres:
+#     image: postgres:16-alpine
+#     container_name: golb_postgres
+#     environment:
+#       POSTGRES_USER: admin
+#       POSTGRES_PASSWORD: "${DB_PASSWORD}"
+#       POSTGRES_DB: golb
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#       - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+#     restart: always
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U admin -d golb"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#     networks:
+#       - golb_network
+
+# volumes:
+#   postgres_data:
+---
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: golb_postgres
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      POSTGRES_DB: golb
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: golb_backend
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d golb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    environment:
+      - PORT=8080
     networks:
       - golb_network
 
-volumes:
-  postgres_data:
+  frontend:
+    image: nginx:alpine
+    container_name: golb_frontend
+    restart: always
+    volumes:
+      - ../frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - golb_network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: golb_cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
+    networks:
+      - golb_network
+
+networks:
+  golb_network:
